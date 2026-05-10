@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>poinmeet — MOM Generator</title>
+<style>
+  :root {
+    --blue: #1F3864;
+    --blue-light: #D9E1F2;
+    --accent: #2563eb;
+    --green: #16a34a;
+    --red: #dc2626;
+    --gray: #6b7280;
+    --border: #d1d5db;
+    --bg: #f8fafc;
+    --white: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #1e293b; font-size: 14px; }
+
+  header { background: var(--blue); color: white; padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  header span { font-size: 12px; opacity: 0.7; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  /* Steps */
+  .steps { display: flex; gap: 0; margin-bottom: 28px; }
+  .step { flex: 1; padding: 10px 16px; background: white; border: 1px solid var(--border); font-size: 13px; color: var(--gray); display: flex; align-items: center; gap: 8px; }
+  .step:first-child { border-radius: 8px 0 0 8px; }
+  .step:last-child { border-radius: 0 8px 8px 0; }
+  .step.active { background: var(--blue); color: white; border-color: var(--blue); }
+  .step.done { background: var(--blue-light); color: var(--blue); border-color: #93c5fd; }
+  .step:hover { opacity: 0.85; }
+  .step-num { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .step.active .step-num { background: rgba(255,255,255,0.4); }
+  .step.done .step-num { background: var(--blue); color: white; }
+
+  /* Cards */
+  .card { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--blue); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  /* Form */
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--gray); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type=text], input[type=date], textarea, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; font-family: inherit; outline: none; transition: border 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 140px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .form-group { margin-bottom: 14px; }
+
+  /* Buttons */
+  .btn { padding: 9px 18px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-success { background: var(--green); color: white; }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-outline { background: white; color: var(--blue); border: 1px solid var(--blue); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* Attendees */
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag { background: var(--blue-light); color: var(--blue); padding: 4px 10px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .tag button { background: none; border: none; cursor: pointer; color: var(--blue); font-size: 14px; line-height: 1; padding: 0; }
+  .add-tag-row { display: flex; gap: 8px; margin-top: 8px; }
+  .add-tag-row input { flex: 1; }
+
+  /* MOM Table */
+  .mom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .mom-table th { background: var(--blue); color: white; padding: 8px 10px; text-align: left; font-weight: 600; }
+  .mom-table td { padding: 6px 8px; border: 1px solid var(--border); vertical-align: top; }
+  .mom-table tr:nth-child(even) td { background: #f8fafc; }
+  .mom-table td textarea { border: none; background: transparent; width: 100%; resize: none; font-size: 13px; font-family: inherit; min-height: 50px; outline: none; }
+  .mom-table td textarea:focus { background: #eff6ff; border-radius: 4px; }
+  .mom-table td input { border: none; background: transparent; width: 100%; font-size: 13px; font-family: inherit; outline: none; }
+  .mom-table td input:focus { background: #eff6ff; border-radius: 4px; }
+  .mom-table td select { border: none; background: transparent; font-size: 13px; font-family: inherit; outline: none; width: 100%; }
+  .mom-table td select:focus { background: #eff6ff; }
+  .col-issue { width: 45%; }
+  .col-deadline { width: 13%; }
+  .col-status { width: 13%; }
+  .col-pic { width: 13%; }
+  .col-action { width: 6%; text-align: center; }
+
+  /* Alert */
+  .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
+  .alert-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+  .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+
+  /* Image cards */
+  .img-card { border:1px solid var(--border); border-radius:8px; padding:8px; width:160px; }
+  .img-card img { width:100%; height:100px; object-fit:cover; border-radius:4px; display:block; }
+  .img-card input { width:100%; margin-top:6px; font-size:11px; border:1px solid var(--border); border-radius:4px; padding:3px 6px; }
+  .img-card .del-btn { margin-top:4px; width:100%; }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* API Key section */
+  .api-key-row { display: flex; gap: 8px; align-items: flex-end; }
+  .api-key-row input { flex: 1; }
+  .key-status { font-size: 12px; margin-top: 4px; }
+  .key-ok { color: var(--green); }
+  .key-no { color: var(--red); }
+
+  /* Section hidden */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Next meeting */
+  .next-meeting { background: var(--blue-light); border-radius: 8px; padding: 16px; margin-top: 16px; }
+  .next-meeting .card-title { color: var(--blue); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📋 poinmeet</h1>
+    <span>AI-Powered Minutes of Meeting Generator</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Steps indicator -->
+  <div class="steps">
+    <div class="step active" id="step1" onclick="goStep(1)" style="cursor:pointer"><div class="step-num">1</div> Input Transcript</div>
+    <div class="step" id="step2" onclick="goStep(2)" style="cursor:pointer"><div class="step-num">2</div> Edit MOM</div>
+    <div class="step" id="step3" onclick="goStep(3)" style="cursor:pointer"><div class="step-num">3</div> Export DOCX</div>
+  </div>
+
+  <!-- ── SECTION 1: Input ── -->
+  <div class="section active" id="sec1">
+
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="alert alert-info">⏳ Mengecek koneksi ke AI...</div>
+
+    <!-- Meeting Info -->
+    <div class="card">
+      <div class="card-title">📌 Informasi Meeting</div>
+      <div class="form-group">
+        <label>Paste info meeting dari Google Calendar / undangan (opsional)</label>
+        <textarea id="meetingInfoText" style="min-height:70px" placeholder="[Book] Preview Internal SIT BRD: 26-022 Mengoptimalkan kinerja tim&#10;Thursday, May 7⋅3:30 – 4:30pm" oninput="parseMeetingInfo()"></textarea>
+        <div style="font-size:12px;color:var(--gray);margin-top:3px">Nama meeting, tanggal, dan jam akan terisi otomatis. Tetap bisa diedit di langkah berikutnya.</div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Nama Meeting / Project</label>
+          <input type="text" id="meetingName" placeholder="Weekly IT Quality Management">
+        </div>
+        <div class="form-group">
+          <label>Tanggal (jika tidak ada di transcript)</label>
+          <input type="date" id="manualDate">
+        </div>
+        <div class="form-group">
+          <label>Waktu Mulai</label>
+          <input type="time" id="manualTimeStart">
+        </div>
+        <div class="form-group">
+          <label>Waktu Selesai</label>
+          <input type="time" id="manualTimeEnd">
+        </div>
+      </div>
+    </div>
+
+    <!-- Transcript -->
+    <div class="card">
+      <div class="card-title">📝 Transcript</div>
+      <div class="form-group">
+        <label>Paste transcript dari Fathom / Google Meet / Notetaker lainnya</label>
+        <textarea id="transcript" placeholder="[00:01] Budi: Selamat pagi semua, kita mulai meeting hari ini...&#10;[00:02] Sari: Pagi, siap.&#10;..."></textarea>
+      </div>
+    </div>
+
+    <!-- Attendees Source -->
+    <div class="card">
+      <div class="card-title">👥 Attendees <span style="font-size:12px;font-weight:400;color:var(--gray)">(opsional — bisa diisi manual di langkah berikutnya)</span></div>
+      <div class="form-group">
+        <label>Paste deskripsi undangan Google Calendar / Outlook (opsional)</label>
+        <textarea id="calendarText" style="min-height:80px" placeholder="Contoh:&#10;Budi Santoso &lt;budi@company.com&gt;&#10;Sari Dewi &lt;sari@company.com&gt;&#10;..."></textarea>
+        <div style="font-size:12px;color:var(--gray);margin-top:4px">
+          Sistem gabungkan nama dari Calendar + transcript otomatis. Kosongkan keduanya → isi manual di langkah berikutnya.
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="generate()" id="btnGenerate">
+          ✨ Generate MOM
+        </button>
+      </div>
+    </div>
+
+    <div id="alertSec1"></div>
+  </div>
+
+  <!-- ── SECTION 2: Edit MOM ── -->
+  <div class="section" id="sec2">
+
+    <!-- Meeting Info Edit -->
+    <div class="card">
+      <div class="card-title">📌 Informasi Meeting</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Nama Meeting</label>
+          <input type="text" id="eMeetingName">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Meeting</label>
+          <input type="date" id="eMeetingDatePicker" onchange="formatTanggal()">
+          <input type="hidden" id="eMeetingDate">
+          <div style="font-size:12px;color:var(--gray);margin-top:3px" id="eMeetingDatePreview"></div>
+        </div>
+        <div class="form-group">
+          <label>Waktu</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="time" id="eMeetingTimeStart" style="width:auto;flex:1">
+            <span style="color:var(--gray)">–</span>
+            <input type="time" id="eMeetingTimeEnd" style="width:auto;flex:1" placeholder="selesai">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Lokasi</label>
+          <input type="text" id="eMeetingLocation" value="Online" placeholder="Online">
+        </div>
+        <div class="form-group">
+          <label>Chairperson</label>
+          <input type="text" id="eChairperson" oninput="this.dataset.edited='1'">
+        </div>
+        <div class="form-group">
+          <label>Prepared By <span style="color:var(--red)">*</span></label>
+          <input type="text" id="ePreparedBy" placeholder="TBA" oninput="if(!document.getElementById('eChairperson').dataset.edited) document.getElementById('eChairperson').value=this.value">
+        </div>
+      </div>
+
+      <!-- Attendees -->
+      <div class="form-group">
+        <label>Attendees</label>
+        <div class="tag-list" id="attendeeList"></div>
+        <div id="attendeeHint" style="font-size:12px;color:var(--gray);margin-top:6px;display:none">
+          ℹ️ Tidak ada attendees terdeteksi otomatis. Tambahkan nama secara manual di bawah.
+        </div>
+        <div class="add-tag-row">
+          <input type="text" id="newAttendee" placeholder="Tambah nama..." onkeydown="if(event.key==='Enter')addAttendee()">
+          <button class="btn btn-outline btn-sm" onclick="addAttendee()">+ Tambah</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOM Items -->
+    <div class="card">
+      <div class="card-title">📋 Issues & Action Items</div>
+      <table class="mom-table">
+        <thead>
+          <tr>
+            <th style="width:4%;text-align:center">#</th>
+            <th class="col-issue">Issues and Actions</th>
+            <th class="col-deadline">Deadline</th>
+            <th class="col-status">Status</th>
+            <th class="col-pic">PIC</th>
+            <th class="col-action"></th>
+          </tr>
+        </thead>
+        <tbody id="momItems"></tbody>
+      </table>
+      <div class="btn-row">
+        <button class="btn btn-outline btn-sm" onclick="addItem()">+ Tambah Item</button>
+        <button class="btn btn-danger btn-sm" onclick="clearItems()">🗑 Hapus Semua</button>
+        <button class="btn btn-primary btn-sm" onclick="goStep(1)">↩ Generate Ulang dari Transcript</button>
+      </div>
+    </div>
+
+    <!-- Next Meeting -->
+    <div class="card">
+      <div class="card-title">📅 Next Meeting</div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label>Tanggal</label>
+          <input type="date" id="eNextDate" onchange="formatNextDate()">
+          <input type="hidden" id="eNextDateFormatted">
+          <div style="font-size:12px;color:var(--gray);margin-top:3px" id="eNextDatePreview"></div>
+        </div>
+        <div class="form-group">
+          <label>Waktu</label>
+          <input type="text" id="eNextTime" placeholder="-">
+        </div>
+        <div class="form-group">
+          <label>Lokasi</label>
+          <input type="text" id="eNextLocation" placeholder="-">
+        </div>
+        <div class="form-group">
+          <label>Chairperson</label>
+          <input type="text" id="eNextChairperson" placeholder="-">
+        </div>
+        <div class="form-group" style="grid-column: span 2">
+          <label>Agenda</label>
+          <input type="text" id="eNextAgenda" placeholder="-">
+        </div>
+      </div>
+    </div>
+
+    <!-- Lampiran -->
+    <div class="card">
+      <div class="card-title">🖼 Lampiran Gambar <span style="font-size:12px;font-weight:400;color:var(--gray)">(opsional, akan ditempatkan di halaman lampiran)</span></div>
+      <div id="imageList" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px"></div>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer">
+        + Upload Gambar
+        <input type="file" accept="image/*" multiple style="display:none" onchange="uploadImages(this)">
+      </label>
+      <div style="font-size:12px;color:var(--gray);margin-top:6px">Jika total file >15MB, gambar akan otomatis dikompres saat export.</div>
+    </div>
+
+    <div id="alertSec2"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="goStep(1)">← Kembali</button>
+      <button class="btn btn-success" onclick="exportDocx()" id="btnExport">
+        📄 Export ke Word (.docx)
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SECTION 3: Done ── -->
+  <div class="section" id="sec3">
+    <div class="card" style="text-align:center; padding: 40px">
+      <div style="font-size: 48px; margin-bottom: 16px">✅</div>
+      <h2 style="color: var(--green); margin-bottom: 8px">File berhasil didownload!</h2>
+      <p id="exportedFilename" style="color: var(--gray); margin-bottom: 24px"></p>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn btn-outline" onclick="goStep(2)">← Edit Lagi</button>
+        <button class="btn btn-primary" onclick="goStep(1); resetAll()">🔄 Buat MOM Baru</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'http://localhost:5000';
+let momData = {};
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.onload = () => {
+  document.getElementById('btnGenerate').disabled = true;
+  checkHealth();
+};
+
+async function checkHealth() {
+  const el = document.getElementById('connectionStatus');
+  try {
+    const r = await fetch(`${API}/api/health`);
+    const d = await r.json();
+    if (d.groq_configured) {
+      el.className = 'alert alert-success';
+      el.innerHTML = '✅ Terhubung ke AI — siap digunakan.';
+      document.getElementById('btnGenerate').disabled = false;
+    } else {
+      el.className = 'alert alert-error';
+      el.innerHTML = '❌ Backend terhubung tapi API Key tidak ditemukan. Cek file <code>backend/.env</code>.';
+    }
+  } catch (e) {
+    el.className = 'alert alert-error';
+    el.innerHTML = '❌ Backend tidak berjalan. Jalankan <strong>start.bat</strong> terlebih dahulu.';
+  }
+}
+
+// ── Date/Time helpers ─────────────────────────────────────────────────────────
+const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function formatTanggal() {
+  const val = document.getElementById('eMeetingDatePicker').value;
+  if (!val) return;
+  const d = new Date(val + 'T00:00:00');
+  const str = `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+  document.getElementById('eMeetingDate').value = str;
+  document.getElementById('eMeetingDatePreview').textContent = str;
+}
+
+function formatNextDate() {
+  const val = document.getElementById('eNextDate').value;
+  if (!val) { document.getElementById('eNextDateFormatted').value = '-'; document.getElementById('eNextDatePreview').textContent = ''; return; }
+  const d = new Date(val + 'T00:00:00');
+  const str = `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+  document.getElementById('eNextDateFormatted').value = str;
+  document.getElementById('eNextDatePreview').textContent = str;
+}
+
+function _nm(val) { return (!val || val.trim().toUpperCase() === 'TBA') ? '-' : val.trim(); }
+
+function parseDateToInput(str) {
+  // Try to parse "Jumat, 27 Maret 2026" → "2026-03-27"
+  if (!str) return '';
+  const m = str.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+  if (!m) return '';
+  const mo = BULAN.findIndex(b => b.toLowerCase() === m[2].toLowerCase());
+  if (mo === -1) return '';
+  return `${m[3]}-${String(mo+1).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+}
+
+function parseTimeToInputs(str) {
+  // "08.30 - Selesai" or "08:30 - 10:00"
+  if (!str) return ['',''];
+  const parts = str.replace(/\./g,':').split(/[-–]/);
+  const start = parts[0]?.trim().match(/\d{2}:\d{2}/) ? parts[0].trim() : '';
+  const end = parts[1]?.trim().match(/\d{2}:\d{2}/) ? parts[1].trim() : '';
+  return [start, end];
+}
+
+function getMeetingTimeString() {
+  const s = document.getElementById('eMeetingTimeStart').value;
+  const e = document.getElementById('eMeetingTimeEnd').value;
+  if (s && e) return `${s} - ${e}`;
+  if (s) return `${s} - Selesai`;
+  return '';
+}
+
+// ── Parse meeting info from pasted text ───────────────────────────────────────
+let parsedMeetingInfo = {};
+
+async function parseMeetingInfo() {
+  const text = document.getElementById('meetingInfoText').value.trim();
+  if (!text) { parsedMeetingInfo = {}; return; }
+  try {
+    const r = await fetch(`${API}/api/parse-meeting-info`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    parsedMeetingInfo = await r.json();
+    if (parsedMeetingInfo.meeting_name)
+      document.getElementById('meetingName').value = parsedMeetingInfo.meeting_name;
+    if (parsedMeetingInfo.meeting_date_iso)
+      document.getElementById('manualDate').value = parsedMeetingInfo.meeting_date_iso;
+    if (parsedMeetingInfo.meeting_time_start)
+      document.getElementById('manualTimeStart').value = parsedMeetingInfo.meeting_time_start;
+    if (parsedMeetingInfo.meeting_time_end)
+      document.getElementById('manualTimeEnd').value = parsedMeetingInfo.meeting_time_end;
+  } catch { parsedMeetingInfo = {}; }
+}
+
+// ── Steps ─────────────────────────────────────────────────────────────────────
+function goStep(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById(`sec${i}`).classList.toggle('active', i === n);
+    const s = document.getElementById(`step${i}`);
+    s.classList.remove('active','done');
+    if (i === n) s.classList.add('active');
+    else if (i < n) s.classList.add('done');
+  });
+}
+
+// ── Generate ──────────────────────────────────────────────────────────────────
+async function generate() {
+  const transcript = document.getElementById('transcript').value.trim();
+  const calendarText = document.getElementById('calendarText').value.trim();
+  const meetingName = document.getElementById('meetingName').value.trim() || 'Meeting';
+  const alertEl = document.getElementById('alertSec1');
+
+  if (!transcript) { showAlert(alertEl, 'error', 'Transcript tidak boleh kosong.'); return; }
+
+  const btn = document.getElementById('btnGenerate');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating...';
+  alertEl.innerHTML = '';
+
+  try {
+    const r = await fetch(`${API}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript, meeting_name: meetingName, calendar_text: calendarText })
+    });
+    const data = await r.json();
+    if (!r.ok || data.error) {
+      if (data.error_type === 'rate_limit') {
+        showAlert(alertEl, 'error', `⏳ <strong>${data.error}</strong><br><small>Groq free tier memiliki batas request per menit. Tunggu sebentar lalu coba lagi.</small>`);
+      } else {
+        throw new Error(data.error || 'Generate gagal');
+      }
+      return;
+    }
+
+    const manualDate = document.getElementById('manualDate').value;
+    if (!data._date_for_filename && manualDate) {
+      data._date_for_filename = manualDate.replace(/-/g, '');
+    }
+    data._manual_date = manualDate ? manualDate.replace(/-/g, '') : '';
+
+    momData = data;
+    populateEditForm(data);
+    goStep(2);
+  } catch (e) {
+    showAlert(alertEl, 'error', `Error: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ Generate MOM';
+  }
+}
+
+async function detectAttendees() {
+  const transcript = document.getElementById('transcript').value.trim();
+  const alertEl = document.getElementById('alertSec1');
+  if (!transcript) { showAlert(alertEl, 'error', 'Transcript tidak boleh kosong.'); return; }
+
+  try {
+    const r = await fetch(`${API}/api/extract-attendees`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript })
+    });
+    const d = await r.json();
+    if (d.attendees && d.attendees.length) {
+      showAlert(alertEl, 'success', `Ditemukan ${d.attendees.length} attendee: ${d.attendees.join(', ')}`);
+    } else {
+      showAlert(alertEl, 'info', 'Tidak ada nama yang terdeteksi dari transcript.');
+    }
+  } catch (e) {
+    showAlert(alertEl, 'error', `Error: ${e.message}`);
+  }
+}
+
+// ── Populate Edit Form ────────────────────────────────────────────────────────
+function populateEditForm(d) {
+  // Merge parsedMeetingInfo (calendar paste) — takes priority over AI result
+  const p = parsedMeetingInfo;
+  document.getElementById('eMeetingName').value = p.meeting_name || d.meeting_name || '';
+
+  // Date — priority: calendar paste > manual date input > AI result
+  const manualDateVal = document.getElementById('manualDate').value; // yyyy-mm-dd
+  const dateISO = p.meeting_date_iso || manualDateVal || parseDateToInput(d.meeting_date || '');
+  document.getElementById('eMeetingDatePicker').value = dateISO;
+  if (dateISO) {
+    formatTanggal();
+  } else if (d.meeting_date) {
+    document.getElementById('eMeetingDate').value = d.meeting_date;
+    document.getElementById('eMeetingDatePreview').textContent = d.meeting_date;
+  }
+
+  // Time — prefer parsed, fallback to AI
+  // Time — priority: calendar paste > manual time step 1 > AI result
+  const manualTs = document.getElementById('manualTimeStart').value;
+  const manualTe = document.getElementById('manualTimeEnd').value;
+  if (p.meeting_time_start || p.meeting_time_end) {
+    document.getElementById('eMeetingTimeStart').value = p.meeting_time_start || '';
+    document.getElementById('eMeetingTimeEnd').value = p.meeting_time_end || '';
+  } else if (manualTs || manualTe) {
+    document.getElementById('eMeetingTimeStart').value = manualTs;
+    document.getElementById('eMeetingTimeEnd').value = manualTe;
+  } else {
+    const [ts, te] = parseTimeToInputs(d.meeting_time || '');
+    document.getElementById('eMeetingTimeStart').value = ts;
+    document.getElementById('eMeetingTimeEnd').value = te;
+  }
+
+  document.getElementById('eMeetingLocation').value = (d.meeting_location && d.meeting_location.trim() && d.meeting_location.trim().toUpperCase() !== 'TBA') ? d.meeting_location.trim() : 'Online';
+  document.getElementById('eChairperson').value = d.chairperson || '';
+  document.getElementById('eChairperson').dataset.edited = '';
+  const preparedBy = (d.prepared_by && d.prepared_by.trim().toUpperCase() !== 'TBA') ? d.prepared_by : '';
+  document.getElementById('ePreparedBy').value = preparedBy;
+  if (!d.chairperson) document.getElementById('eChairperson').value = preparedBy;
+  document.getElementById('eNextDate').value = parseDateToInput(d.next_meeting_date || '');
+  formatNextDate();
+  document.getElementById('eNextTime').value = _nm(d.next_meeting_time || '');
+  document.getElementById('eNextLocation').value = _nm(d.next_meeting_location || '');
+  document.getElementById('eNextChairperson').value = _nm(d.next_meeting_chairperson || '');
+  document.getElementById('eNextAgenda').value = _nm(d.next_meeting_agenda || '');
+
+  renderAttendees(d.attendees || []);
+
+  const tbody = document.getElementById('momItems');
+  tbody.innerHTML = '';
+  (d.items || []).forEach((item, i) => addItemRow(item, i));
+}
+
+// ── Attendees ─────────────────────────────────────────────────────────────────
+let attendees = [];
+
+function renderAttendees(list) {
+  attendees = [...list];
+  const el = document.getElementById('attendeeList');
+  const hint = document.getElementById('attendeeHint');
+  el.innerHTML = attendees.map((a, i) =>
+    `<span class="tag">${a}<button onclick="removeAttendee(${i})">×</button></span>`
+  ).join('');
+  if (hint) hint.style.display = attendees.length === 0 ? 'block' : 'none';
+}
+
+function addAttendee() {
+  const inp = document.getElementById('newAttendee');
+  const name = inp.value.trim();
+  if (!name) return;
+  attendees.push(name);
+  renderAttendees(attendees);
+  inp.value = '';
+}
+
+function removeAttendee(i) {
+  attendees.splice(i, 1);
+  renderAttendees(attendees);
+}
+
+// ── MOM Items ─────────────────────────────────────────────────────────────────
+const STATUS_OPTIONS = ['Open','On Progress','Done','Monitoring','Note','Noted','Progress'];
+
+function addItemRow(item = {}, idx) {
+  const tbody = document.getElementById('momItems');
+  const tr = document.createElement('tr');
+  const statusOpts = STATUS_OPTIONS.map(s =>
+    `<option value="${s}" ${(item.status||'') === s ? 'selected' : ''}>${s}</option>`
+  ).join('');
+
+  // Convert deadline dd/mm/yyyy → yyyy-mm-dd, fallback to meeting date
+  const dlRaw = item.deadline || '';
+  const dlMatch = dlRaw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  const meetingDateISO = document.getElementById('eMeetingDatePicker').value;
+  const dlISO = dlMatch
+    ? `${dlMatch[3]}-${dlMatch[2].padStart(2,'0')}-${dlMatch[1].padStart(2,'0')}`
+    : (meetingDateISO || '');
+
+  tr.innerHTML = `
+    <td style="text-align:center;font-size:13px;color:var(--gray);width:4%" class="row-num"></td>
+    <td class="col-issue"><textarea oninput="autoResize(this)">${item.issue || ''}</textarea></td>
+    <td class="col-deadline">
+      <input type="date" value="${dlISO}" style="width:100%;font-size:12px">
+    </td>
+    <td class="col-status"><select>${statusOpts}</select></td>
+    <td class="col-pic"><input type="text" value="${item.pic || ''}"></td>
+    <td class="col-action"><button class="btn btn-danger btn-sm" onclick="removeRow(this)">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  setTimeout(() => autoResize(tr.querySelector('textarea')), 0);
+  renumberItems();
+}
+
+function addItem() {
+  addItemRow({}, document.getElementById('momItems').children.length);
+}
+
+function clearItems() {
+  if (confirm('Hapus semua isian Issues & Actions?')) {
+    document.getElementById('momItems').innerHTML = '';
+  }
+}
+
+function renumberItems() {
+  document.querySelectorAll('#momItems tr').forEach((tr, i) => {
+    tr.querySelector('.row-num').textContent = i + 1;
+  });
+}
+
+function removeRow(btn) {
+  btn.closest('tr').remove();
+  renumberItems();
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+// ── Collect form data ─────────────────────────────────────────────────────────
+function collectData() {
+  const items = [];
+  document.querySelectorAll('#momItems tr').forEach((tr, i) => {
+    const tds = tr.querySelectorAll('td');
+    const dlDate = tds[2].querySelector('input[type=date]').value;
+    let deadline = '';
+    if (dlDate) {
+      const [y,m,d] = dlDate.split('-');
+      deadline = `${d}/${m}/${y}`;
+    }
+    const issueText = tds[1].querySelector('textarea').value.trim();
+    items.push({
+      issue: issueText ? `${i + 1}. ${issueText}` : '',
+      deadline,
+      status: tds[3].querySelector('select').value,
+      pic: tds[4].querySelector('input').value.trim(),
+    });
+  });
+
+  return {
+    meeting_name: document.getElementById('eMeetingName').value.trim(),
+    meeting_date: document.getElementById('eMeetingDate').value.trim(),
+    meeting_time: getMeetingTimeString(),
+    meeting_location: document.getElementById('eMeetingLocation').value.trim(),
+    chairperson: document.getElementById('eChairperson').value.trim(),
+    prepared_by: document.getElementById('ePreparedBy').value.trim(),
+    attendees: [...attendees],
+    next_meeting_date: document.getElementById('eNextDateFormatted').value || (document.getElementById('eNextDate').value ? (() => { const d = new Date(document.getElementById('eNextDate').value + 'T00:00:00'); return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`; })() : '-'),
+    next_meeting_time: document.getElementById('eNextTime').value.trim() || '-',
+    next_meeting_location: document.getElementById('eNextLocation').value.trim() || '-',
+    next_meeting_chairperson: document.getElementById('eNextChairperson').value.trim() || '-',
+    next_meeting_agenda: document.getElementById('eNextAgenda').value.trim() || '-',
+    items,
+    _date_for_filename: momData._date_for_filename || '',
+    _manual_date: momData._manual_date || '',
+    image_ids: uploadedImages.map(i => ({ id: i.id, caption: i.caption })),
+  };
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+async function exportDocx() {
+  const alertEl = document.getElementById('alertSec2');
+  const btn = document.getElementById('btnExport');
+  const preparedByEl = document.getElementById('ePreparedBy');
+
+  // Validate Prepared By
+  if (!preparedByEl.value.trim() || preparedByEl.value.trim().toUpperCase() === 'TBA') {
+    preparedByEl.style.border = '2px solid var(--red)';
+    preparedByEl.focus();
+    showAlert(alertEl, 'error', '⚠️ Field <strong>Prepared By</strong> wajib diisi.');
+    return;
+  }
+  preparedByEl.style.border = '';
+
+  const data = collectData();
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Exporting...';
+
+  try {
+    const r = await fetch(`${API}/api/export`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error('Export gagal');
+
+    // Get filename from Content-Disposition
+    const cd = r.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : 'mom.docx';
+
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    document.getElementById('exportedFilename').textContent = `File: ${filename}`;
+    goStep(3);
+  } catch (e) {
+    showAlert(alertEl, 'error', `Error: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📄 Export ke Word (.docx)';
+  }
+}
+
+// ── Images ────────────────────────────────────────────────────────────────────
+let uploadedImages = []; // [{id, name, caption}]
+
+async function uploadImages(input) {
+  const files = Array.from(input.files);
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const r = await fetch(`${API}/api/upload-image`, { method: 'POST', body: fd });
+      const d = await r.json();
+      if (d.id) {
+        uploadedImages.push({ id: d.id, name: d.name, caption: '' });
+        renderImages();
+      }
+    } catch (e) {
+      alert(`Gagal upload ${file.name}: ${e.message}`);
+    }
+  }
+  input.value = '';
+}
+
+function renderImages() {
+  const el = document.getElementById('imageList');
+  el.innerHTML = uploadedImages.map((img, i) => `
+    <div class="img-card">
+      <img src="${API}/api/image/${img.id}" alt="${img.name}">
+      <input type="text" value="${img.caption}" placeholder="Caption..." oninput="uploadedImages[${i}].caption=this.value">
+      <button class="btn btn-danger btn-sm del-btn" onclick="deleteImage(${i})">✕ Hapus</button>
+    </div>
+  `).join('');
+}
+
+async function deleteImage(i) {
+  const img = uploadedImages[i];
+  await fetch(`${API}/api/delete-image/${img.id}`, { method: 'DELETE' });
+  uploadedImages.splice(i, 1);
+  renderImages();
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function showAlert(el, type, msg) {
+  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+function resetAll() {
+  document.getElementById('transcript').value = '';
+  document.getElementById('meetingName').value = '';
+  document.getElementById('manualDate').value = '';
+  document.getElementById('momItems').innerHTML = '';
+  document.getElementById('attendeeList').innerHTML = '';
+  attendees = [];
+  momData = {};
+  document.getElementById('alertSec1').innerHTML = '';
+}
+</script>
+</body>
+</html>
